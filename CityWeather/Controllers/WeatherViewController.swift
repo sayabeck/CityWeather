@@ -15,7 +15,7 @@ class WeatherViewController: UIViewController {
     @IBOutlet weak var weatherImage: UIImageView!
     @IBOutlet weak var weatherDescription: UILabel!
     
-    var weatherManager = WeatherManager()
+    private var weather: WeatherModel?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,7 +24,6 @@ class WeatherViewController: UIViewController {
         weatherDescription.isHidden = true
         
         searchTextField.delegate = self
-        weatherManager.delegate = self
     }
     
     private func failedAlert() {
@@ -73,25 +72,20 @@ extension WeatherViewController: UITextFieldDelegate {
     func textFieldDidEndEditing(_ textField: UITextField) {
         
         guard let city = searchTextField.text else { return }
-        weatherManager.fetchWeather(city)
+        WeatherManager.shared.fetchWeather(city) { weatherModel in
+            self.weather = weatherModel
+            
+            DispatchQueue.main.async { [self] in
+                weatherImage.image = UIImage(systemName: weather?.conditionName ?? "")
+                weatherDescription.text = weather?.description ?? ""
+                weatherImage.isHidden = false
+                weatherDescription.isHidden = false
+                textLabel.isHidden = true
+            }
+        }
+
         searchTextField.text = ""
     }
 }
 
-//MARK: - WeatherManagerDelegate
-extension WeatherViewController: WeatherManagerDelegate {
-    func didSendWeather(_ weatherManager: WeatherManager, weather: WeatherModel) {
-        DispatchQueue.main.async {
-            self.weatherImage.image = UIImage(systemName: weather.conditionName)
-            self.weatherDescription.text = weather.description
-            self.weatherImage.isHidden = false
-            self.weatherDescription.isHidden = false
-            self.textLabel.isHidden = true
-        }
-    }
-    
-    func didFailWithError(error: Error) {
-        failedAlert()
-    }
-}
 
